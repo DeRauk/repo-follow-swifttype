@@ -89,8 +89,15 @@ REST_FRAMEWORK = {
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': join(BASE_DIR, 'db.sqlite3'),
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': 'repofollow',
+        'USER': 'derauk',
+        'PASSWORD': 'jelly',
+        'HOST': 'localhost',
+        'PORT': '',
+        'ATOMIC_REQUESTS':True # Important: An exception during an http request
+                               #            causes a rollback for all db calls
+                               #            that occurred during that request
     }
 }
 
