@@ -70,7 +70,8 @@ STATICFILES_DIRS = (
     root("static"),
     )
 
-TEMPLATE_DIRS = [join(BASE_DIR, 'account', 'templates'),
+TEMPLATE_DIRS = [join(BASE_DIR, 'repofollow', 'templates'),
+                 join(BASE_DIR, 'account', 'templates'),
                  join(BASE_DIR, 'ordering', 'templates'),]
 
 REST_FRAMEWORK = {
@@ -82,6 +83,7 @@ REST_FRAMEWORK = {
 }
 
 
+LOGIN_URL="/account/login/"
 
 # Normally all of the settings below this would be split out into a dev.py and 
 # prod.py file, to keep it simple I just put everything in here.

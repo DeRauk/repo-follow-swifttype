@@ -1,0 +1,49 @@
+{# login.html: Login page - Inspired (err... taken?) from bootstrap example http://getbootstrap.com/examples/signin/ #}
+{% extends 'base.html' %}
+
+{% load staticfiles %}
+
+{% block title %} Log In {% endblock title %}
+
+{% block stylesheets %}
+	{{block.super}}
+	<style>
+		body {
+			padding-top: 80px;
+			padding-bottom: 40px;
+			background-color: #eee;
+		}
+	</style>
+{% endblock stylesheets %}
+
+{% block header %}
+<div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+	<div class="container">
+		<div class="navbar-header">
+			<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target=".navbar-collapse">
+				<span class="sr-only">Toggle navigation</span>
+        		<span class="icon-bar"></span>
+        		<span class="icon-bar"></span>
+        		<span class="icon-bar"></span>
+      		</button>
+      		<a class="navbar-brand" href="/">Repo Follow</a>
+    	</div>
+	</div>
+</div>
+{% endblock header %}
+
+{% block content %}
+	{{block.super}}
+ 	<div class="container">
+ 		<form method="post"  action="{% url 'account:login' %}" role="form" class="form-signin">
+ 			{% csrf_token %}
+ 			{% if form.errors %}
+                {{ form.non_field_errors }}
+            {% endif %}
+        	<h2 class="form-signin-heading">Please sign in</h2>
+        	{{form.email}}
+        	{{form.password}}
+        	<button class="btn btn-lg btn-primary btn-block" type="submit">Sign in</button>
+      </form>
+    </div>
+{% endblock content %}
