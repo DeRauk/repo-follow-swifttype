@@ -10,5 +10,5 @@ from django.conf.urls.static import static
 urlpatterns = patterns('',
     url(r'^account/', include('account.urls', namespace='account')),
 	url(r'^$', feed), # Map the index to the commit feed
-    # url(r'^follower/', include('commitfollower.urls', namespace='follower')),
+    url(r'^follower/', include('commitfollower.urls', namespace='follower')),
 ) + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
