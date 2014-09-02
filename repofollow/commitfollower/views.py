@@ -9,6 +9,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
 import json
 from .follower import get_repo_branches, unlink_user_branch, link_user_branch, get_recent_commits
+from .validators import valid_url, supported_vcs_provider
 
 @login_required
 def feed(request):
@@ -34,7 +35,15 @@ def get_branches(request, repo_url):
 	Get the branches for a repository. Returns a json payload.
 	"""
 
+	# Errors: 400 - bad url, 501 not a supported vcs
+	if not valid_url(repo_url):
+		return HttpResponse(status=400)
+
+	if not supported_vcs_provider(repo_url):
+		return HttpResponse(status=501)
+
 	response_data = {}
+	response_data['success'] = True
 	response_data['result'] = repo_url
 	return HttpResponse(json.dumps(response_data), content_type="application/json")
 
@@ -58,17 +67,13 @@ def remove_repo(request, repo_url):
 	"""
 	Remove the repo and all of it's branches from the followed list for the user.
 	"""
+
+	# Some validation before we use repo_url in a db query
+	if not valid_url(repo_url):
+		return HttpResponse(status=400)
+
+	if not supported_vcs_provider(repo_url):
+		return HttpResponse(status=400)
+
+
 	None
-
-# class Repositories(View):
-# 	@method_decorator(login_required)
-# 	def dispatch(self, *args, **kwargs):
-# 		""" Using dispatch allows the use of the login_required decorator """
-# 		return super(Repositories, self).dispatch(*args, **kwargs)
-
-# 	def get(self, request):
-# 		""" Return a table of currently followed repositories """
-# 		return render_to_response('', context_instance=RequestContext(request))
-
-# 	def post(self, request):
-# 		return render_to_response('', context_instance=RequestContext(request))

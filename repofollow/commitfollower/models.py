@@ -13,9 +13,10 @@ class Repository(TimeStampedModel):
 	"""
 
 	# To allow expansion to bitbucket or some other hip, new, up and coming site
+	# The descriptive name here should be the netloc for the vcs site to be validated
 	GITHUB = 0
 	REPO_CHOICES = (
-		(GITHUB, "Github"),
+		(GITHUB, "github.com"),
 	)
 
 	# Obviously a lot more would need to be done to expand to another source control
