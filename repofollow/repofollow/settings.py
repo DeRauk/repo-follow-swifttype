@@ -59,11 +59,9 @@ USE_L10N = True
 USE_TZ = True
 
 
-STATIC_URL = '/static/'
-# MEDIA_URL = "/media/"
+STATIC_URL = '/static/'\
 
 STATIC_ROOT = root("collected_static")
-# MEDIA_ROOT = root("media")
 
 STATICFILES_DIRS = (
     root("assets"),
@@ -85,8 +83,19 @@ REST_FRAMEWORK = {
 
 LOGIN_URL="/account/login/"
 
-# Normally all of the settings below this would be split out into a dev.py and 
+
+# Normally all of the settings below this would be split out into a dev.py and
 # prod.py file, to keep it simple I just put everything in here.
+
+
+VCS_PROPERTIES = {
+    'github.com': {
+        'api_url': "https://api.github.com",
+        'request_headers': {'Accept': 'application/vnd.github.v3+json'},
+        'oauth_key': r'2ea202b5258512fd5f60',
+        'oauth_token': {'access_token': 'e48db759a3d121caa8fa00f92c6786a1f52a2522'}
+    }
+}
 
 
 DATABASES = {

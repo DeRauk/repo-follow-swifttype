@@ -7,6 +7,7 @@ from django.shortcuts import render_to_response
 from django.template.context import RequestContext
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
+from django.core.exceptions import ObjectDoesNotExist
 import json
 from .follower import get_repo_branches, unlink_user_branch, link_user_branch, get_recent_commits
 from .validators import valid_url, supported_vcs_provider
@@ -42,10 +43,16 @@ def get_branches(request, repo_url):
 	if not supported_vcs_provider(repo_url):
 		return HttpResponse(status=501)
 
-	response_data = {}
-	response_data['success'] = True
-	response_data['result'] = repo_url
-	return HttpResponse(json.dumps(response_data), content_type="application/json")
+	try:
+		branches = get_repo_branches(repo_url)
+		response_data = {}
+		response_data['success'] = True
+		response_data['result'] = branches
+		return HttpResponse(json.dumps(response_data), content_type="application/json")
+	except ObjectDoesNotExist:
+		return HttpResponse(status=404)
+
+
 
 @login_required
 def follow_branches(request):
