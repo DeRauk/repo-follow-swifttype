@@ -88,10 +88,16 @@ LOGIN_URL="/account/login/"
 # prod.py file, to keep it simple I just put everything in here.
 
 
+from dateutil import tz
+TIME_ZONE = 'America/New_York'
+TIME_ZONE_OBJ = tz.gettz(TIME_ZONE)
+
 VCS_PROPERTIES = {
     'github.com': {
         'api_url': "https://api.github.com",
-        'request_headers': {'Accept': 'application/vnd.github.v3+json'},
+        'request_headers': {
+                            'Accept': 'application/vnd.github.v3+json',
+                            'Time-Zone': TIME_ZONE},
         'oauth_key': r'2ea202b5258512fd5f60',
         'oauth_token': {'access_token': 'e48db759a3d121caa8fa00f92c6786a1f52a2522'}
     }

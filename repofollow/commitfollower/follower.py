@@ -10,6 +10,7 @@ from requests_oauthlib import OAuth2Session
 from datetime import datetime
 from .models import Repository
 from dateutil import parser as dateparser
+from dateutil import tz
 import requests, logging, json, pdb
 
 logger = logging.getLogger(__name__)
@@ -91,13 +92,14 @@ class VcsWrapper:
 	def sync(self):
 		""" Sync up the repository with our local database """
 
+		now = datetime.now(tz.gettz(settings.TIME_ZONE))
+
 		try:
 			repo = Repository.objects.get(url=self.repo_url)
 		except Repository.DoesNotExist:
 			self.initialize_new_repo()
 			return
 
-		now = datetime.now()
 
 		# if we haven't reached last_updated_time + update_interval return early
 		# next_sync_allowed = repo.synced + datetime.delta(0, repo.sync_interval_sec)
@@ -136,7 +138,7 @@ def rate_limited(fn):
 	"""
 	def check_limited(self, *argv, **kwargs):
 		if self.limited:
-			now = datetime.now()
+			now = datetime.now(tz.gettz(settings.TIME_ZONE))
 			reset = self.limit_reset
 			if now < reset:
 				raise RateLimitException(reset, self.site_key)
@@ -196,13 +198,13 @@ class GithubFollower:
 		return [d['name'] for d in resp_data]
 
 	@rate_limited
-	def get_commits(self, repo_path):
+	def get_commits(self, repo_path, last_update=None):
 		"""
-		Use the Github REST api to get a list of commits for the repo_path
+		Use the Github REST api to get a list of commits for the repo_path.
+		Returns [(sha, msg, date)]
 		"""
 		commits = []
 		headers = self.properties['request_headers']
-		next_page = ''
 		getMore = True
 		url = "{}/repos{}/commits".format(self.properties['api_url'], repo_path)
 
@@ -210,14 +212,22 @@ class GithubFollower:
 			response = self.response_wrapper(self.client.get(url, headers=headers))
 
 			resp_data = json.loads(response.text)
-			commits += [(d['sha'], d['commit']['message']) for d in resp_data]
+			commits += [(d['sha'], d['commit']['message'], \
+										dateparser.parse(d['commit']['author']['date'])\
+											.replace(tzinfo=settings.TIME_ZONE_OBJ)) \
+									for d in resp_data]
 
-			# Get next page by grabbing 'next' link if it exists, if not break
+			# Get next page by grabbing 'next' link if it exists
 			links = response.headers['link'].split(',')
-			try:
-				next_page = [i for i in links if 'next' in i][0]
+			next_page_list = [i for i in links if 'next' in i]
+			oldest_commit = commits[-1][2]
+
+			# if there's another page of commits newer than what we have in our db
+			if len(next_page_list) > 0 and last_update is not None \
+																		and oldest_commit > last_update:
+				next_page = next_page_list[0]
 				url = next_page[next_page.rfind("<") + 1:next_page.rfind(">")]
-			except IndexError:
+			else:
 				getMore = False
 
 		return commits
