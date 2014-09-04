@@ -99,7 +99,8 @@ VCS_PROPERTIES = {
                             'Accept': 'application/vnd.github.v3+json',
                             'Time-Zone': TIME_ZONE},
         'oauth_key': r'2ea202b5258512fd5f60',
-        'oauth_token': {'access_token': 'e48db759a3d121caa8fa00f92c6786a1f52a2522'}
+        'oauth_token': {'access_token': 'e48db759a3d121caa8fa00f92c6786a1f52a2522'},
+        'sync_interval_sec': 30
     }
 }
 

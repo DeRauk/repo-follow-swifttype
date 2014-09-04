@@ -66,6 +66,10 @@ class Branch(TimeStampedModel):
     def __unicode__(self):
         return "{} - {}".format(str(self.repository), self.name)
 
+    @classmethod
+    def create(cls, repository, name):
+    	return cls(repository=repository, name=name)
+
     def save(self, *args, **kwargs):
     	"""
     	Make sure the repository updated time is set
@@ -80,11 +84,16 @@ class Commit(TimeStampedModel):
     Model representing a commit for a branch
     """
 
-    number = models.CharField(max_length=50)
+    sha = models.CharField(max_length=50)
     author = models.CharField(max_length=50)
     branch = models.ForeignKey(Branch)
     message = models.TextField(null=True)
     added = models.DateTimeField()
+
+    @classmethod
+    def create(cls, branch, author, sha, message, date):
+    	return cls(branch=branch, author=author, sha=sha,
+    								message=message, added=date)
 
     def save(self, *args, **kwargs):
     	"""
@@ -92,7 +101,7 @@ class Commit(TimeStampedModel):
     	"""
     	self.branch.repository.updated = datetime.now()
     	self.branch.repository.save()
-    	super(Branch, self).save(*args, **kwargs)
+    	super(Commit, self).save(*args, **kwargs)
 
     class Meta:
         db_table = "commits"

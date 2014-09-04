@@ -8,7 +8,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from urlparse import urlparse
 from requests_oauthlib import OAuth2Session
 from datetime import datetime
-from .models import Repository
+from .models import Repository, Branch, Commit
 from dateutil import parser as dateparser
 from dateutil import tz
 import requests, logging, json, pdb
@@ -17,12 +17,13 @@ logger = logging.getLogger(__name__)
 
 HEADERS = {'Accept': 'application/vnd.github.v3+json'}
 
-def get_repo_branches(repo_url):
+def get_repo_branches(user, repo_url):
 	"""
 	Get the branches of a repository.
 	"""
 
-	follower = VcsWrapper(repo_url)
+
+	follower = VcsWrapper(user, repo_url)
 	follower.sync()
 
 
@@ -76,8 +77,9 @@ class RateLimitException(Exception):
 
 class VcsWrapper:
 
-	def __init__(self, repo_url):
+	def __init__(self, user, repo_url):
 		try:
+			self.user = user
 			self.repo_url = repo_url
 
 			parsed = urlparse(repo_url)
@@ -92,40 +94,58 @@ class VcsWrapper:
 	def sync(self):
 		""" Sync up the repository with our local database """
 
-		now = datetime.now(tz.gettz(settings.TIME_ZONE))
-
 		try:
 			repo = Repository.objects.get(url=self.repo_url)
 		except Repository.DoesNotExist:
 			self.initialize_new_repo()
 			return
 
+		now = datetime.now(tz.gettz(settings.TIME_ZONE))
 
-		# if we haven't reached last_updated_time + update_interval return early
-		# next_sync_allowed = repo.synced + datetime.delta(0, repo.sync_interval_sec)
+		# A minimum required amount of time betwen calls helps with rate limiting
+		time_interval = datetime.delta(0, repo.properties['sync_interval_sec'])
+		next_sync_allowed = repo.synced + time_interval
 		if now < next_sync_allowed:
 			return
 
 
-		# grab the last updated time for the repo (from api)
+		# if the remote updated time is less than our last updated time,
+		# return b/c there's nothing new to sync
+		remote_updated_time = self.follower.get_last_updated(self.repo_path)
+		local_updated_time = self.repo.synced
 
-		# if the updated time is less than our last updated time, return b/c nothing new
-		# otherwise call sync_branches and sync_commits
+		if local_updated_time >= remote_updated_time:
+			return
 
-		repo_updated_time = self.follower.get_last_updated(self.repo_path)
 		branch_list = self.follower.get_branches(self.repo_path)
-		commit_list = self.follower.get_commits(self.repo_path)
+		self.sync_branches(repo, branch_list)
+
+		for branch in branch_list:
+			commit_list = self.follower.get_commits(self.repo_path)
+			self.sync_commits(repo, branch, commit_list)
 
 		repo.synced = now
 		repo.save()
 
 	def initialize_new_repo(self):
+		repo = Repository(url=self.repo_url, type=self.follower.vcs,
+												source=self.follower.source)
+		repo.save()
+
+		branch_list = self.follower.get_branches(self.repo_path)
+		for branch_name in branch_list:
+			branch = Branch.create(repo, branch_name)
+			branch.save()
+
+			commit_list = self.follower.get_commits(self.repo_path, branch.name)
+			for commit_data in commit_list:
+				commit = Commit.create(branch, *commit_data)
+				commit.save()
+
+	def sync_branches(self, repo, branch_list):
 		None
 
-	def sync_branches(self, repo_url, branch_list):
-		None
-
-	def sync_commits(self, repo_url, commit_list):
+	def sync_commits(self, repo, branch, commit_list):
 		None
 
 
@@ -159,12 +179,12 @@ class GithubFollower:
 		limited -- boolen, true if the api is currently limited
 		limit_reset -- datetime of when the api will no longer be limited
 	"""
-	instance = None
 	site_key = 'github.com'
+	source = Repository.GITHUB
+	vcs  = Repository.GIT
 	properties = settings.VCS_PROPERTIES[site_key]
 	limited = False
 	limit_reset = None
-	sync_interval_sec = 600
 
 	def __init__(self):
 		self.client = OAuth2Session(self.properties['oauth_key'],
@@ -198,40 +218,44 @@ class GithubFollower:
 		return [d['name'] for d in resp_data]
 
 	@rate_limited
-	def get_commits(self, repo_path, last_update=None):
+	def get_commits(self, repo_path, branch, since=None):
 		"""
 		Use the Github REST api to get a list of commits for the repo_path.
-		Returns [(sha, msg, date)]
+		Returns [(author, sha, msg, date)]
 		"""
 		commits = []
 		headers = self.properties['request_headers']
-		getMore = True
-		url = "{}/repos{}/commits".format(self.properties['api_url'], repo_path)
+		url = "{}/repos{}/commits?sha={}".format(self.properties['api_url'],
+																									repo_path, branch)
+		if since is not None:
+			since_param = since.replace(microsecond=0).\
+													replace(tzinfo=None).isoformat()
+			url = "{}&since={}".format(url, since_param)
 
-		while getMore:
+		while url is not None:
 			response = self.response_wrapper(self.client.get(url, headers=headers))
-
 			resp_data = json.loads(response.text)
-			commits += [(d['sha'], d['commit']['message'], \
-										dateparser.parse(d['commit']['author']['date'])\
-											.replace(tzinfo=settings.TIME_ZONE_OBJ)) \
+			commits += [(d['commit']['author']['name'],
+										d['sha'],
+										  d['commit']['message'], \
+												dateparser.parse(d['commit']['author']['date'])\
+													.replace(tzinfo=settings.TIME_ZONE_OBJ)) \
 									for d in resp_data]
 
 			# Get next page by grabbing 'next' link if it exists
-			links = response.headers['link'].split(',')
-			next_page_list = [i for i in links if 'next' in i]
-			oldest_commit = commits[-1][2]
+			if 'link' in response.headers and 'next' in response.headers['link']:
+				links = response.headers['link'].split(',')
+				next_page_list = [i for i in links if 'next' in i]
 
-			# if there's another page of commits newer than what we have in our db
-			if len(next_page_list) > 0 and last_update is not None \
-																		and oldest_commit > last_update:
-				next_page = next_page_list[0]
-				url = next_page[next_page.rfind("<") + 1:next_page.rfind(">")]
+				if len(next_page_list) > 0:
+					next_page = next_page_list[0]
+					url = next_page[next_page.rfind("<") + 1:next_page.rfind(">")]
+				else:
+					url = None
 			else:
-				getMore = False
+				url = None
 
 		return commits
-
 
 	@staticmethod
 	def response_wrapper(response):
@@ -262,7 +286,7 @@ class GithubFollower:
 
 	@staticmethod
 	def get_instance():
-		if GithubFollower.instance == None:
+		if not hasattr(GithubFollower, 'instance'):
 			GithubFollower.instance = GithubFollower()
 
 		return GithubFollower.instance

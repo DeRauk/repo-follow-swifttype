@@ -44,7 +44,7 @@ def get_branches(request, repo_url):
 		return HttpResponse(status=501)
 
 	try:
-		branches = get_repo_branches(repo_url)
+		branches = get_repo_branches(request.user, repo_url)
 		response_data = {}
 		response_data['success'] = True
 		response_data['result'] = branches
