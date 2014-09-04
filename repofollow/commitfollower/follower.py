@@ -8,7 +8,9 @@ from django.core.exceptions import ObjectDoesNotExist
 from urlparse import urlparse
 from requests_oauthlib import OAuth2Session
 from datetime import datetime
-import requests, logging, pdb
+from .models import Repository
+from dateutil import parser as dateparser
+import requests, logging, json, pdb
 
 logger = logging.getLogger(__name__)
 
@@ -19,10 +21,11 @@ def get_repo_branches(repo_url):
 	Get the branches of a repository.
 	"""
 
-	parsed = urlparse(repo_url)
-	repo_path = parsed.path
-	follower = get_vcs_api(parsed.netloc)
-	return follower.get_branches(repo_path)
+	follower = VcsWrapper(repo_url)
+	follower.sync()
+
+
+	return ""
 
 	# If we have the url in our db just grab the urls and return them
 
@@ -70,9 +73,65 @@ class RateLimitException(Exception):
 
 
 
+class VcsWrapper:
+
+	def __init__(self, repo_url):
+		try:
+			self.repo_url = repo_url
+
+			parsed = urlparse(repo_url)
+			self.repo_path = parsed.path
+
+			self.follower = {
+				'github.com': GithubFollower.get_instance(),
+			}[parsed.netloc]
+		except KeyError:
+			raise ObjectDoesNotExist()
+
+	def sync(self):
+		""" Sync up the repository with our local database """
+
+		try:
+			repo = Repository.objects.get(url=self.repo_url)
+		except Repository.DoesNotExist:
+			self.initialize_new_repo()
+			return
+
+		now = datetime.now()
+
+		# if we haven't reached last_updated_time + update_interval return early
+		# next_sync_allowed = repo.synced + datetime.delta(0, repo.sync_interval_sec)
+		if now < next_sync_allowed:
+			return
+
+
+		# grab the last updated time for the repo (from api)
+
+		# if the updated time is less than our last updated time, return b/c nothing new
+		# otherwise call sync_branches and sync_commits
+
+		repo_updated_time = self.follower.get_last_updated(self.repo_path)
+		branch_list = self.follower.get_branches(self.repo_path)
+		commit_list = self.follower.get_commits(self.repo_path)
+
+		repo.synced = now
+		repo.save()
+
+	def initialize_new_repo(self):
+		None
+
+	def sync_branches(self, repo_url, branch_list):
+		None
+
+	def sync_commits(self, repo_url, commit_list):
+		None
+
+
+
+
 def rate_limited(fn):
 	"""
-	A decorator to check if the class is rate limited and throw an exception if it
+	A decorator to check if the api is rate limited and throw an exception if it
 	is.
 	"""
 	def check_limited(self, *argv, **kwargs):
@@ -103,22 +162,78 @@ class GithubFollower:
 	properties = settings.VCS_PROPERTIES[site_key]
 	limited = False
 	limit_reset = None
+	sync_interval_sec = 600
 
 	def __init__(self):
 		self.client = OAuth2Session(self.properties['oauth_key'],
 																	token=self.properties['oauth_token'])
 
 	@rate_limited
-	def get_branches(self, repo_path):
-		""" Get the branches for a repository from the site api """
+	def get_last_updated(self, repo_path):
+		"""
+		Get when the repo was last pushed to
+		"""
 		url = "{}/repos{}".format(self.properties['api_url'], repo_path)
 		headers = self.properties['request_headers']
-		response = self.update_rate_limit(self.client.get(url, headers=headers))
-		return response.text
+		response = self.response_wrapper(self.client.get(url, headers=headers))
+
+		resp_data = json.loads(response.text)
+		updated_str = resp_data['updated_at']
+		updated_time = dateparser.parse(updated_str)
+
+		return updated_time
 
 	@rate_limited
-	def sync(self, repo_path):
-		None
+	def get_branches(self, repo_path):
+		"""
+		Use the Github REST api to get a list of branches for the repo_path
+		"""
+		headers = self.properties['request_headers']
+		url = "{}/repos{}/branches".format(self.properties['api_url'], repo_path)
+		response = self.response_wrapper(self.client.get(url, headers=headers))
+
+		resp_data = json.loads(response.text)
+		return [d['name'] for d in resp_data]
+
+	@rate_limited
+	def get_commits(self, repo_path):
+		"""
+		Use the Github REST api to get a list of commits for the repo_path
+		"""
+		commits = []
+		headers = self.properties['request_headers']
+		next_page = ''
+		getMore = True
+		url = "{}/repos{}/commits".format(self.properties['api_url'], repo_path)
+
+		while getMore:
+			response = self.response_wrapper(self.client.get(url, headers=headers))
+
+			resp_data = json.loads(response.text)
+			commits += [(d['sha'], d['commit']['message']) for d in resp_data]
+
+			# Get next page by grabbing 'next' link if it exists, if not break
+			links = response.headers['link'].split(',')
+			try:
+				next_page = [i for i in links if 'next' in i][0]
+				url = next_page[next_page.rfind("<") + 1:next_page.rfind(">")]
+			except IndexError:
+				getMore = False
+
+		return commits
+
+
+	@staticmethod
+	def response_wrapper(response):
+		"""
+		Handle some common checks and updates for github api responses
+		"""
+		if(response.status_code == 404):
+			raise ObjectDoesNotExist()
+
+		GithubFollower.update_rate_limit(response)
+		return response
+
 
 	@staticmethod
 	def update_rate_limit(response):
@@ -134,7 +249,6 @@ class GithubFollower:
 			GithubFollower.limited = True
 			GithubFollower.limit_reset = reset
 			raise RateLimitException(reset, GithubFollower.site_key)
-		return response
 
 	@staticmethod
 	def get_instance():
@@ -142,12 +256,3 @@ class GithubFollower:
 			GithubFollower.instance = GithubFollower()
 
 		return GithubFollower.instance
-
-
-def get_vcs_api(site):
-	try:
-		return {
-			'github.com': GithubFollower.get_instance(),
-		}[site]
-	except KeyError:
-		raise ObjectDoesNotExist()

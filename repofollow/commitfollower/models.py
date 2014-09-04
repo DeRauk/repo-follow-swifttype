@@ -31,6 +31,7 @@ class Repository(TimeStampedModel):
     url = models.CharField(max_length=100, primary_key=True)
     type = models.IntegerField(choices=SOURCE_CONTROL_CHOICES)
     source = models.IntegerField(choices=REPO_CHOICES)
+    synced = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = "repositories"
@@ -54,6 +55,14 @@ class Branch(TimeStampedModel):
     def __unicode__(self):
         return "{} - {}".format(str(self.repository), self.name)
 
+    def save(self, *args, **kwargs):
+    	"""
+    	Make sure the repository updated time is set
+    	"""
+    	self.repository.updated = datetime.now()
+    	self.repository.save()
+    	super(Branch, self).save(*args, **kwargs)
+
 
 class Commit(TimeStampedModel):
     """
@@ -65,6 +74,14 @@ class Commit(TimeStampedModel):
     branch = models.ForeignKey(Branch)
     message = models.TextField(null=True)
     added = models.DateTimeField()
+
+    def save(self, *args, **kwargs):
+    	"""
+    	Make sure the repository updated time is set
+    	"""
+    	self.branch.repository.updated = datetime.now()
+    	self.branch.repository.save()
+    	super(Branch, self).save(*args, **kwargs)
 
     class Meta:
         db_table = "commits"
