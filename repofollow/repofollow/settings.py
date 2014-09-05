@@ -59,7 +59,7 @@ USE_L10N = True
 USE_TZ = True
 
 
-STATIC_URL = '/static/'\
+STATIC_URL = '/static/'
 
 STATIC_ROOT = root("collected_static")
 
@@ -89,7 +89,7 @@ LOGIN_URL="/account/login/"
 
 
 from dateutil import tz
-TIME_ZONE = 'America/New_York'
+TIME_ZONE = 'UTC'
 TIME_ZONE_OBJ = tz.gettz(TIME_ZONE)
 
 VCS_PROPERTIES = {

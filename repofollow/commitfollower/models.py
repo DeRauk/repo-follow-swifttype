@@ -34,15 +34,8 @@ class Repository(TimeStampedModel):
   source = models.IntegerField(choices=REPO_CHOICES)
   synced = models.DateTimeField(auto_now_add=True)
 
-  def __getattr__(self, attrname):
-    """
-    The database doesn't store time zone info, so we add it here
-    """
-    if attrname == 'synced':
-      date_time = super(TimeStampedModel, self).__getattr__(attrname)
-      return date_time.replace(tzinfo=settings.TIME_ZONE_OBJ)
-    else:
-      return super(TimeStampedModel, self).__getattr__(attrname)
+  def synced_with_tz(self):
+  	return self.synced.replace(tzinfo=settings.TIME_ZONE_OBJ)
 
   class Meta:
       db_table = "repositories"

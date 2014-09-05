@@ -10,7 +10,7 @@ from django.http import HttpResponse
 from django.core.exceptions import ObjectDoesNotExist
 import json
 from .follower import get_repo_branches, unlink_user_branch, link_user_branch, get_recent_commits
-from .validators import valid_url, supported_vcs_provider
+from .validators import valid_url, supported_vcs_provider, clean_url
 
 @login_required
 def feed(request):
@@ -36,6 +36,8 @@ def get_branches(request, repo_url):
 	Get the branches for a repository. Returns a json payload.
 	"""
 
+	repo_url = clean_url(repo_url)
+
 	# Errors: 400 - bad url, 501 not a supported vcs
 	if not valid_url(repo_url):
 		return HttpResponse(status=400)
@@ -55,17 +57,12 @@ def get_branches(request, repo_url):
 
 
 @login_required
-def follow_branches(request):
+def updatebranches(request, repo_url):
 	"""
-	Follow a list of branches.  Expects a json payload in post data.
+	Updates followed branches for a repo.  Expects a json payload in post data.
 	"""
-	None
+	repo_url = clean_url(repo_url)
 
-@login_required
-def unfollow_branches(request):
-	"""
-	Unfollow a list of branches.  Expects a json payload in post data.
-	"""
 	None
 
 
@@ -74,6 +71,7 @@ def remove_repo(request, repo_url):
 	"""
 	Remove the repo and all of it's branches from the followed list for the user.
 	"""
+	repo_url = clean_url(repo_url)
 
 	# Some validation before we use repo_url in a db query
 	if not valid_url(repo_url):

@@ -32,3 +32,9 @@ def supported_vcs_provider(url):
 		return True
 	else:
 		return False
+
+def clean_url(url):
+	if url[-1] == '/':
+		return url[:-1]
+	else:
+		return url
