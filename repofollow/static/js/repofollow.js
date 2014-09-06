@@ -27,6 +27,21 @@ follower = {
 	},
 
 	show_add_branches: function(response){
-		console.log(response);
+		$("#modal_placeholder").html(response);
+		$("#modal_placeholder .modal").modal();
+	},
+
+	branch_update: function(){
+		$.ajax({
+			type:"POST",
+			url: $("#branch_update").attr("action"),
+			data: $("#branch_update").serialize(),
+			beforeSend: function(){
+				// loading gif;
+			},
+			success: function(data){
+				location.reload();
+			}
+		});
 	}
 };

@@ -1,0 +1,43 @@
+<div class="modal fade">
+  <div class="modal-dialog">
+    <form id="branch_update" role="form" action="{% url 'follower:update_branches' repo_url %}">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+          <h4 class="modal-title">Choose branches to follow</h4>
+        </div>
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-md-8 col-md-offset-2">
+            <h4>{{repo_url}}</h4>
+              <table class="table table-striped" style="max-width:300px;">
+                <thead>
+                </thead>
+                <tbody>
+                  {% for branch in branches %}
+                    <tr>
+                      <td>
+                        <label>
+                          {{branch}}
+                        </label>
+                      </td>
+                      <td>
+                        <div class="checkbox" >
+                          <label><input type="checkbox" name="{{branch}}"></label>
+                        </div>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary" onclick="follower.branch_update();">Update Branches</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>

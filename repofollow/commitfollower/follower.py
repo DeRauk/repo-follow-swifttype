@@ -27,29 +27,36 @@ def get_repo_branches(user, repo_url):
 
 	repo = follower.repo
 
+	return repo.branch_set.all()
 
-	return ""
+def get_user_repos(user):
+	return Repository.objects.filter(branch__followers=user)
 
-	# If we have the url in our db just grab the urls and return them
+def add_remove_user_branches(user, repo_url, submitted_branch_names):
+	try:
+		repo = Repository.objects.get(url=repo_url)
+		repo_branches = repo.branch_set.all()
+		user_branches = user.branch_set.filter(repository=repo)
+		user_branch_names = [ubranch.name for ubranch in user_branches]
 
 
-	# Otherwise, figure out which apis to use based on url and call them
-	# put the returned branches in the database and then return them from the function
+		new_branches = [branch for branch in repo_branches if branch.name in \
+											submitted_branch_names and branch.name not in \
+												user_branch_names]
 
-	None
+		deleted_branches = [branch for branch in repo_branches if branch.name in \
+													user_branch_names and branch.name not in \
+														submitted_branch_names]
 
-def unlink_user_branch(user, branch_id):
-	"""
-	Have a user stop following a branch
-	"""
-	# Remove the user from the m2m relation in branches
-	None
+		for branch in deleted_branches:
+			branch.followers.remove(user)
 
-def link_user_branch(user, branch_id):
-	"""
-	Have a user start following a branch
-	"""
-	None
+		for branch in new_branches:
+			branch.followers.add(user)
+
+
+	except Repository.DoesNotExist:
+		raise ObjectDoesNotExist()
 
 def get_recent_commits(user, num):
 	"""
@@ -132,22 +139,17 @@ class VcsWrapper:
 		if not self.should_sync(self.repo):
 			return
 
-		# if a branch has been removed, delete all data and do a fresh repo insert
-		# if there's no fresh repo insert and there's new branches add them
-		# if there's no fresh repo insert do regular update on all existing branches
+
 		remote_branch_list = self.follower.get_branches(self.repo_path)
 		local_branch_list  = [b.name for b in self.repo.branch_set.all()]
 		new_branches = [r for r in remote_branch_list if r not in local_branch_list]
 		stale_branches = [l for l in local_branch_list if l not in remote_branch_list]
 
 		if len(stale_branches) > 0:
-			## Delete old branches
-
 			for branch in self.repo.branch_set.all():
 				if branch.name in stale_branches:
 					branch.delete()
 
-		## If there's any new branches, add all of their commits
 		if len(new_branches) > 0:
 			for branch_name in new_branches:
 				self.add_branch(branch_name)

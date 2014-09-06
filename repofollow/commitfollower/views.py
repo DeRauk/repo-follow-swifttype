@@ -4,30 +4,40 @@ Views for the commitfollower app
 
 from __future__ import absolute_import
 from django.shortcuts import render_to_response
+from django.template import Context
 from django.template.context import RequestContext
+from django.template.loader import get_template
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
 from django.core.exceptions import ObjectDoesNotExist
-import json
-from .follower import get_repo_branches, unlink_user_branch, link_user_branch, get_recent_commits
-from .validators import valid_url, supported_vcs_provider, clean_url
+from .follower import get_repo_branches, get_recent_commits, add_remove_user_branches, get_user_repos
+from .validators import valid_url, supported_vcs_provider, clean_url, repo_contains_branches
+import logging, pdb
+
+logger = logging.getLogger(__name__)
 
 @login_required
 def feed(request):
 	"""
-	Return the news feed of commits for a user. To be consumed in an html template.
+	Return the news feed of commits for a user. Returns an html payload.
 	"""
 	context = RequestContext(request)
 	commits = get_recent_commits(request.user, 10)
 
-	return render_to_response('commitfollower/feed.html', {'commits': commits}, context_instance=context)
+	return render_to_response('commitfollower/feed.html', {'commits': commits},
+																context_instance=context)
 
 @login_required
 def repo_list(request):
 	"""
-	Return a list of repositories for the logged in user. To be consumed in an html template.
+	Return a list of repositories for the logged in user. Returns an html payload.
 	"""
-	None
+
+	context = RequestContext(request)
+	repos = get_user_repos(request.user)
+
+	return render_to_response('commitfollower/repository_list.html',
+															{'repos': repos}, context_instance=context)
 
 
 @login_required
@@ -46,24 +56,37 @@ def get_branches(request, repo_url):
 		return HttpResponse(status=501)
 
 	try:
-		branches = get_repo_branches(request.user, repo_url)
-		response_data = {}
-		response_data['success'] = True
-		response_data['result'] = branches
-		return HttpResponse(json.dumps(response_data), content_type="application/json")
+		branch_models = get_repo_branches(request.user, repo_url)
+		# display_data = [{'name': b.name, 'repo':repo_url} for b in branch_models]
+		display_data = [b.name for b in branch_models]
+		parameters = {'branches': display_data, 'repo_url':repo_url}
+		html = get_template('commitfollower/branch_choice_modal.html')
+		return HttpResponse(html.render(Context(parameters)))
 	except ObjectDoesNotExist:
 		return HttpResponse(status=404)
 
-
-
 @login_required
-def updatebranches(request, repo_url):
+def update_branches(request, repo_url):
 	"""
 	Updates followed branches for a repo.  Expects a json payload in post data.
 	"""
 	repo_url = clean_url(repo_url)
 
-	None
+	pdb.set_trace()
+
+	# Some validation before we use repo_url in a db query
+	if not valid_url(repo_url) or not supported_vcs_provider(repo_url):
+		return HttpResponse(status=400)
+
+	if request.method == 'POST':
+		branch_names = request.POST.keys()
+		if not repo_contains_branches(repo_url, branch_names):
+			return HttpResponse(status=400)
+		else:
+			add_remove_user_branches(request.user, repo_url, branch_names)
+			return HttpResponse(status=200)
+	else:
+		return HttpResponse(status=501)
 
 
 @login_required

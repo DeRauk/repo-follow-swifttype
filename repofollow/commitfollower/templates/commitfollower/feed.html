@@ -7,6 +7,7 @@
 
 
 {% block header %}
+    {{block.super}}
 	<div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
     	<div class="container">
     		<div class="navbar-header">
@@ -39,6 +40,7 @@
 {% endblock header %}
 
 {% block content %}
+    {{block.super}}
 	<div class="container" id="main">
 		<div class="alert alert-error alert-danger" role="alert" id="client_error" style="display: none">
 		  <button type="button" class="close" onclick="$('.alert#client_error').hide();"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
