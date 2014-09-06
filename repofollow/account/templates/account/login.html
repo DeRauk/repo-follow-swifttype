@@ -33,8 +33,6 @@
 {% endblock header %}
 
 {% block content %}
-	{{block.super}}
- 	<div class="container">
  		<form method="post"  action="{% url 'account:login' %}" role="form" class="form-signin">
  			{% csrf_token %}
  			{% if form.errors %}
@@ -45,5 +43,4 @@
         	{{form.password}}
         	<button class="btn btn-lg btn-primary btn-block" type="submit">Sign in</button>
       </form>
-    </div>
 {% endblock content %}

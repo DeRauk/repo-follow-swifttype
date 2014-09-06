@@ -38,3 +38,12 @@ def clean_url(url):
 		return url[:-1]
 	else:
 		return url
+
+def repo_contains_branches(repo_url, branch_name_list):
+		repo = Repository.objects.get(url=repo_url)
+		repo_branch_names = [b.name for b in repo.branch_set.all()]
+		for branch_name in branch_name_list:
+			if branch_name not in repo_branch_names:
+				return False
+			else:
+				return True

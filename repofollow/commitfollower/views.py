@@ -10,7 +10,7 @@ from django.template.loader import get_template
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
 from django.core.exceptions import ObjectDoesNotExist
-from .follower import get_repo_branches, get_recent_commits, add_remove_user_branches, get_user_repos
+from . import follower
 from .validators import valid_url, supported_vcs_provider, clean_url, repo_contains_branches
 import logging, pdb
 
@@ -22,7 +22,7 @@ def feed(request):
 	Return the news feed of commits for a user. Returns an html payload.
 	"""
 	context = RequestContext(request)
-	commits = get_recent_commits(request.user, 10)
+	commits = follower.get_recent_commits(request.user, 10)
 
 	return render_to_response('commitfollower/feed.html', {'commits': commits},
 																context_instance=context)
@@ -34,7 +34,7 @@ def repo_list(request):
 	"""
 
 	context = RequestContext(request)
-	repos = get_user_repos(request.user)
+	repos = follower.get_user_repos(request.user)
 
 	return render_to_response('commitfollower/repository_list.html',
 															{'repos': repos}, context_instance=context)
@@ -56,9 +56,8 @@ def get_branches(request, repo_url):
 		return HttpResponse(status=501)
 
 	try:
-		branch_models = get_repo_branches(request.user, repo_url)
-		# display_data = [{'name': b.name, 'repo':repo_url} for b in branch_models]
-		display_data = [b.name for b in branch_models]
+		branch_models = follower.get_repo_branches(request.user, repo_url)
+		display_data = [(b.name, followed) for b, followed in branch_models]
 		parameters = {'branches': display_data, 'repo_url':repo_url}
 		html = get_template('commitfollower/branch_choice_modal.html')
 		return HttpResponse(html.render(Context(parameters)))
@@ -72,8 +71,6 @@ def update_branches(request, repo_url):
 	"""
 	repo_url = clean_url(repo_url)
 
-	pdb.set_trace()
-
 	# Some validation before we use repo_url in a db query
 	if not valid_url(repo_url) or not supported_vcs_provider(repo_url):
 		return HttpResponse(status=400)
@@ -83,14 +80,14 @@ def update_branches(request, repo_url):
 		if not repo_contains_branches(repo_url, branch_names):
 			return HttpResponse(status=400)
 		else:
-			add_remove_user_branches(request.user, repo_url, branch_names)
+			follower.add_remove_user_branches(request.user, repo_url, branch_names)
 			return HttpResponse(status=200)
 	else:
 		return HttpResponse(status=501)
 
 
 @login_required
-def remove_repo(request, repo_url):
+def unfollow_repo(request, repo_url):
 	"""
 	Remove the repo and all of it's branches from the followed list for the user.
 	"""
@@ -103,5 +100,10 @@ def remove_repo(request, repo_url):
 	if not supported_vcs_provider(repo_url):
 		return HttpResponse(status=400)
 
-
-	None
+	try:
+		pdb.set_trace()
+		user = request.user
+		follower.unfollow_repo(user, repo_url)
+		return HttpResponse(status=200)
+	except ObjectDoesNotExist:
+		return HttpResponse(status=404)

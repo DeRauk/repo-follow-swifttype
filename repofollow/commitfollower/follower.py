@@ -19,18 +19,29 @@ HEADERS = {'Accept': 'application/vnd.github.v3+json'}
 
 def get_repo_branches(user, repo_url):
 	"""
-	Get the branches of a repository.
+	Get the branches of a repository and if a user if following them.
 	"""
 
 	follower = VcsWrapper(user, repo_url)
 	follower.sync()
 
 	repo = follower.repo
+	repo_branches = repo.branch_set.all()
+	user_followed_branches = user.branch_set.all()
 
-	return repo.branch_set.all()
+	return [(b, b in user_followed_branches) for b in repo_branches]
 
 def get_user_repos(user):
-	return Repository.objects.filter(branch__followers=user)
+	return Repository.objects.filter(branch__followers=user).distinct()
+
+def unfollow_repo(user, repo_url):
+	try:
+		logger.debug("Unfollowing repo {}", repo_url)
+		repo_branches = Repository.objects.get(url=repo_url).branch_set.all()
+		for branch in repo_branches:
+			branch.followers.remove(user)
+	except Repository.DoesNotExist:
+		raise ObjectDoesNotExist()
 
 def add_remove_user_branches(user, repo_url, submitted_branch_names):
 	try:

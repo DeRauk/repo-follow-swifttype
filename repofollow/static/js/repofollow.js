@@ -1,7 +1,5 @@
 follower = {
-	get_branches: function (){
-		var repo_url = $("input#repo_url").val();
-
+	get_branches: function (repo_url){
 		$.ajax("/follower/branches/" + repo_url, {
 		   type: "GET",
 		   statusCode: {
@@ -42,6 +40,26 @@ follower = {
 			success: function(data){
 				location.reload();
 			}
+		});
+	},
+
+	unfollow_repo: function(rest_url){
+		$.ajax(rest_url, {
+		   type: "GET",
+		   statusCode: {
+		      200: function (response) {
+		         location.reload();
+		      },
+		      400: function (response) {
+		         follower.client_error("Invalid url entered for a repository");
+		      },
+		      404: function(response) {
+		      	follower.client_error("We could not find a repository at that url");
+		      },
+		      501: function (response) {
+		         follower.client_error("Sorry, we currently only support repositories on github.com");
+		      }
+		   }
 		});
 	}
 };

@@ -1,0 +1,51 @@
+{# feed.html: Feed of commits for followed repos #}
+{% extends 'base.html' %}
+
+{% load staticfiles %}
+
+{% block title %} Manage Repositories {% endblock title %}
+
+
+{% block header %}
+    {{block.super}}
+{% endblock header %}
+
+{% block content %}
+    {{block.super}}
+    <div class="col-md-12">
+      <h2 class="centered">Repository Manager</h2>
+      <br /> <br />
+      {% if repos %}
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Repository</th>
+              <th>Last Synced</th>
+              <th class="centered">Edit Followed Branches</th>
+              <th class="centered">Unfollow Repository</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for repo in repos %}
+              <tr>
+                <td><a href="{{repo.url}}" target="_blank">{{repo.url}}</a></td>
+                <td>{{repo.synced}}</td>
+                <td class="centered">
+                  <a href="javascript:void(0);" onclick="follower.get_branches('{{repo.url}}');"role="btn" class="btn btn-info mybtn">
+                    <span class="glyphicon glyphicon-cog"></span>
+                  </a>
+                </td>
+                <td class="centered">
+                  <a href="javascript:void(0);" onclick="follower.unfollow_repo('{% url 'follower:unfollow_repo' repo.url %}');" role="btn" class="btn btn-danger mybtn">
+                    <span class="glyphicon glyphicon-remove"></span>
+                  </a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p class="centered"><i>You don't seem to be following any repositories yet.  Enter a valid repository url in the text bar on the header to get started!</i></p>
+      {% endif %}
+    </div>
+{% endblock content %}

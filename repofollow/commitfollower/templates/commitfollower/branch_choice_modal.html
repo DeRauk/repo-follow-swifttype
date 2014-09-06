@@ -14,7 +14,7 @@
                 <thead>
                 </thead>
                 <tbody>
-                  {% for branch in branches %}
+                  {% for branch, followed in branches %}
                     <tr>
                       <td>
                         <label>
@@ -23,7 +23,7 @@
                       </td>
                       <td>
                         <div class="checkbox" >
-                          <label><input type="checkbox" name="{{branch}}"></label>
+                          <label><input type="checkbox" name="{{branch}}" {% if followed %} checked='checked' {% endif %}></label>
                         </div>
                       </td>
                     </tr>
