@@ -33,22 +33,30 @@ def get_commits(request):
 	context = RequestContext(request)
 
 	commits_list = follower.get_recent_commits(request.user)
-	paginator = Paginator(commits_list, 3)
-	page = request.GET.get('page')
 
-	try:
-		commits = paginator.page(page)
-	except PageNotAnInteger:
-		page = 1
-		commits = paginator.page(page)
-	except EmptyPage:
-		page = paginator.num_pages
-		commits = paginator.page(page)
+	if len(commits_list) == 0:
+		response = render_to_response('commitfollower/no_repos.html',
+																			context_instance=context)
+		response['more_pages'] = False
+		return response
+	else:
+		paginator = Paginator(commits_list, 3)
+		page = request.GET.get('page')
 
-	response = render_to_response('commitfollower/commit_list.html', {'commits': commits},
-																context_instance=context)
-	response['more_pages'] = int(page) == paginator.num_pages
-	return response
+		try:
+			commits = paginator.page(page)
+		except PageNotAnInteger:
+			page = 1
+			commits = paginator.page(page)
+		except EmptyPage:
+			page = paginator.num_pages
+			commits = paginator.page(page)
+
+		response = render_to_response('commitfollower/commit_list.html', {'commits': commits},
+																	context_instance=context)
+		response['more_pages'] = int(page) < paginator.num_pages
+
+		return response
 
 @login_required
 def repo_list(request):

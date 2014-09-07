@@ -45,7 +45,7 @@
           </tbody>
         </table>
       {% else %}
-        <p class="centered"><i>You don't seem to be following any repositories yet.  Enter a valid repository url in the text bar on the header to get started!</i></p>
+        {% include 'commitfollower/no_repos.html' %}
       {% endif %}
     </div>
 {% endblock content %}

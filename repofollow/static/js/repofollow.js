@@ -93,7 +93,7 @@ follower = {
 		   type: "GET",
 		   statusCode: {
 		      200: function (response) {
-		         $("#commits").append(response);
+         		$("#commits").append(response);
 		      },
 		      400: function (response) {
 		         follower.client_error("Invalid url entered for a repository");
@@ -106,7 +106,7 @@ follower = {
 		      }
 		   }
 		}).success(function(data, textStatus, request){
-			if(request.getResponseHeader('more_pages') == 'True'){
+			if(request.getResponseHeader('more_pages') == 'False'){
 				follower.more_commits = false;
 			}
 			console.log(request.getResponseHeader('more_pages'));
