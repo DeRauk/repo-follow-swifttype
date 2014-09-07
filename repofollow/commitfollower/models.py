@@ -120,8 +120,14 @@ class Commit(TimeStampedModel):
         return False
 
     def get_author_link(self):
+      def get_github_link():
+        if self.author_image_url.startswith(settings.STATIC_URL):
+          return "javascript:void(0);"
+        else:
+          return "https://{}/{}".format(GITHUB_DOMAIN,self.author)
+
       return {
-        Repository.GITHUB: "https://{}/{}".format(GITHUB_DOMAIN,self.author)
+        Repository.GITHUB: get_github_link()
       }[self.branch.repository.type]
 
     def get_original_link(self):

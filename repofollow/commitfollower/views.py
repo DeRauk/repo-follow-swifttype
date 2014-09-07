@@ -40,7 +40,7 @@ def get_commits(request):
 		response['more_pages'] = False
 		return response
 	else:
-		paginator = Paginator(commits_list, 3)
+		paginator = Paginator(commits_list, 25)
 		page = request.GET.get('page')
 
 		try:
