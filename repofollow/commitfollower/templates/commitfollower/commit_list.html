@@ -1,0 +1,40 @@
+{% load staticfiles %}
+
+{% for commit in commits %}
+  <div class="row commit">
+    <div class="col-md-3">
+      <div class="row">
+        <p><b><a title="{{commit.branch.repository.url}}" href="{{commit.branch.repository.url}}">{{commit.branch.repository.get_name|truncatechars:20}}</a></b></p>
+      </div>
+      <div class="row">
+        <div class="col-md-6">
+          <a href="{{commit.get_author_link}}">
+            <img class="profile_img" src="{{commit.author_image_url}}"></img>
+          </a>
+        </div>
+        <div class="col-md-6">
+          {% for branch in commit.branches %}
+            <p><small><a href="{{branch.get_url}}">{{branch.name}}</a></small></p>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    <div class="col-md-8 commit-body highlight">
+      <p>
+        <a href="{{commit.get_author_link}}">{{commit.author}}</a> committed <a href="{{commit.get_original_link}}">{{commit.sha|truncatechars:15}}</a>
+        <small>{{commit.added}}</small>
+      </p>
+      <pre>
+        <p>{{commit.message}}</p>
+      </pre>
+      <p>
+        {{commit.list_branches}}
+      </p>
+    </div>
+    <div class="col-md-1">
+      <a href="{{commit.get_original_link}}">
+        <img src="{% static 'images/forwardarrow.ico' %}" class="goarrow"></img>
+      </a>
+    </div>
+  </div>
+{% endfor %}

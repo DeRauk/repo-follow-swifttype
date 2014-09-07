@@ -28,38 +28,23 @@
 	</div>
 
   <div class="col-md-8 col-md-offset-2 commitfeed">
-    {% for commit in commits %}
-      <div class="row commit">
-        <div class="col-md-3">
-          <div class="row">
-            <p><b><a title="{{commit.branch.repository.url}}" href="{{commit.branch.repository.url}}">{{commit.branch.repository.get_name|truncatechars:20}}</a></b></p>
-          </div>
-          <div class="row">
-            <div class="col-md-6">
-              <a href="{{commit.get_author_link}}">
-                <img class="profile_img" src="{{commit.author_image_url}}"></img>
-              </a>
-            </div>
-            <div class="col-md-6">
-              {% for branch in commit.branches %}
-                <p><small><a href="{{branch.get_url}}">{{branch.name}}</a></small></p>
-              {% endfor %}
-            </div>
-          </div>
-        </div>
-        <div class="col-md-8 commit-body highlight">
-          <p>
-            <a href="{{commit.get_author_link}}">{{commit.author}}</a> committed <a href="{{commit.get_original_link}}">{{commit.sha|truncatechars:15}}</a>
-            <small>{{commit.added}}</small>
-          </p>
-          <pre>
-            <p>{{commit.message}}</p>
-          </pre>
-          <p>
-            {{commit.list_branches}}
-          </p>
-        </div>
-      </div>
-    {% endfor %}
+    <div class="row feed-title">
+      <h2 class="centered">Your commit feed</h2>
+    </div>
+    <div id="commits">
+    </div>
+    <div class="row centered loadmore">
+      <a href="javascript:void(0);" onclick="follower.load_more_commits('{% url 'follower:get_commits' %}');" style="display: none;">
+        View More
+      </a>
+      <i class="fa fa-spinner fa-spin fa-2x"></i>
+    </div>
   </div>
 {% endblock content %}
+
+{% block scripts %}
+  {{block.super}}
+  <script type="text/javascript">
+    follower.load_more_commits("{% url 'follower:get_commits' %}");
+  </script>
+{% endblock scripts %}

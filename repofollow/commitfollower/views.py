@@ -10,6 +10,7 @@ from django.template.loader import get_template
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
 from django.core.exceptions import ObjectDoesNotExist
+from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from . import follower
 from .validators import valid_url, supported_vcs_provider, clean_url, repo_contains_branches
 import logging, pdb
@@ -22,11 +23,32 @@ def feed(request):
 	Return the news feed of commits for a user. Returns an html payload.
 	"""
 	context = RequestContext(request)
+	return render_to_response('commitfollower/feed.html', context_instance=context)
 
-	commits = follower.get_recent_commits(request.user)
+@login_required
+def get_commits(request):
+	"""
+	Returns an html payload of commits.
+	"""
+	context = RequestContext(request)
 
-	return render_to_response('commitfollower/feed.html', {'commits': commits},
+	commits_list = follower.get_recent_commits(request.user)
+	paginator = Paginator(commits_list, 3)
+	page = request.GET.get('page')
+
+	try:
+		commits = paginator.page(page)
+	except PageNotAnInteger:
+		page = 1
+		commits = paginator.page(page)
+	except EmptyPage:
+		page = paginator.num_pages
+		commits = paginator.page(page)
+
+	response = render_to_response('commitfollower/commit_list.html', {'commits': commits},
 																context_instance=context)
+	response['more_pages'] = int(page) == paginator.num_pages
+	return response
 
 @login_required
 def repo_list(request):
@@ -102,7 +124,6 @@ def unfollow_repo(request, repo_url):
 		return HttpResponse(status=400)
 
 	try:
-		pdb.set_trace()
 		user = request.user
 		follower.unfollow_repo(user, repo_url)
 		return HttpResponse(status=200)

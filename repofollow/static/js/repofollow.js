@@ -1,5 +1,9 @@
 follower = {
+	page: 0,
+	more_commits: true,
+
 	get_branches: function (repo_url){
+		this.show_modal_spinner();
 		$.ajax("/follower/branches/" + repo_url, {
 		   type: "GET",
 		   statusCode: {
@@ -16,6 +20,8 @@ follower = {
 		         follower.client_error("Sorry, we currently only support repositories on github.com");
 		      }
 		   }
+		}).done(function(data){
+			follower.hide_modal_spinner();
 		});
 	},
 
@@ -30,16 +36,31 @@ follower = {
 	},
 
 	branch_update: function(){
+		this.show_modal_spinner();
 		$.ajax({
 			type:"POST",
 			url: $("#branch_update").attr("action"),
 			data: $("#branch_update").serialize(),
-			beforeSend: function(){
-				// loading gif;
-			},
-			success: function(data){
-				location.reload();
-			}
+		   statusCode: {
+		      200: function (response) {
+		      	 // loading gif off
+		         location.reload();
+		      },
+		      400: function (response) {
+		         follower.client_error("Invalid url entered for a repository");
+		         $("#branch_modal").modal('hide');
+		      },
+		      404: function(response) {
+		      	follower.client_error("We could not find a repository at that url");
+		      	$("#branch_modal").modal('hide');
+		      },
+		      501: function (response) {
+		         follower.client_error("Sorry, we currently only support repositories on github.com");
+		         $("#branch_modal").modal('hide');
+		      }
+		   }
+		}).done(function(data){
+			follower.hide_modal_spinner();
 		});
 	},
 
@@ -51,7 +72,7 @@ follower = {
 		         location.reload();
 		      },
 		      400: function (response) {
-		         follower.client_error("Invalid url entered for a repository");
+		         follower.client_error("Invalid repository url or branch");
 		      },
 		      404: function(response) {
 		      	follower.client_error("We could not find a repository at that url");
@@ -61,5 +82,47 @@ follower = {
 		      }
 		   }
 		});
+	},
+
+	load_more_commits: function(rest_url){
+		$(".loadmore a").hide();
+		$(".loadmore i").show();
+		this.page += 1;
+
+		$.ajax(rest_url + "?page=" + this.page, {
+		   type: "GET",
+		   statusCode: {
+		      200: function (response) {
+		         $("#commits").append(response);
+		      },
+		      400: function (response) {
+		         follower.client_error("Invalid url entered for a repository");
+		      },
+		      404: function(response) {
+		      	follower.client_error("We could not find a repository at that url");
+		      },
+		      501: function (response) {
+		         follower.client_error("Sorry, we currently only support repositories on github.com");
+		      }
+		   }
+		}).success(function(data, textStatus, request){
+			if(request.getResponseHeader('more_pages') == 'True'){
+				follower.more_commits = false;
+			}
+			console.log(request.getResponseHeader('more_pages'));
+		}).done(function(data) {
+			$(".loadmore i").hide();
+			if(follower.more_commits){
+				$(".loadmore a").show();
+			}
+		});
+	},
+
+	show_modal_spinner: function(){
+		$("#overlayspinner").show();
+	},
+
+	hide_modal_spinner: function(){
+		$("#overlayspinner").hide();
 	}
 };

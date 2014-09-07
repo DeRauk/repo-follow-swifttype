@@ -56,11 +56,12 @@
 .commitfeed {
   background-color: white;
   margin-top:-50px;
+  margin-bottom: 55px;
 }
 
 .commit {
   border-bottom: 1px solid #e7eaec;
-  height:125px;
+  height:110px;
   padding:5px;
 }
 
@@ -77,10 +78,49 @@
   padding-top:3px;
   margin-top:0;margin-bottom:0;
   word-break:normal;
-  word-wrap:nowrap;
   white-space:nowrap;
   background-color:transparent;
   border:0;
   background-color: #eee;
   height: 50px;
+}
+
+.goarrow {
+  height: 70px;
+  opacity: 0.3;
+  margin-top:15px;
+  margin-right:5px;
+}
+
+.feed-title {
+  border-bottom: 1px solid #e7eaec;
+  height:70px;
+  padding:5px;
+}
+
+.block-link {
+  display:block;
+}
+
+.loadmore{
+  height:45px;
+  padding:10px;
+}
+/*
+.loadmore i {
+  margin-top:5px;
+}*/
+
+.loadmore a{
+  margin-top:10px;
+}
+
+
+#overlayspinner{
+   position: absolute;
+   left: 50%;
+   top: 30%;
+   margin:0px auto;
+   z-index: 9999;
+   display: none;
 }

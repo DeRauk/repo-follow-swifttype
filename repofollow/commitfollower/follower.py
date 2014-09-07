@@ -310,16 +310,13 @@ class GithubFollower:
 				author_image_url = d['author']['avatar_url']
 			else:
 				author = commit_data['commit']['author']['name']
-				author_image_url = None
+				author_image_url = settings.STATIC_URL + "/images/anonymous.jpg"
 
 			sha = commit_data['sha']
 			message = commit_data['commit']['message']
 			date = dateparser.parse(d['commit']['author']['date'])\
 													.replace(tzinfo=settings.TIME_ZONE_OBJ)
 			return (author, sha, message, date, author_image_url)
-
-
-
 
 		commits = []
 		headers = self.properties['request_headers']

@@ -12,9 +12,11 @@
 		{% block stylesheets %}
 			<link href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css" rel="stylesheet" type="text/css" media="screen">
 			<link href="{% static 'css/repofollow.css' %}" rel="stylesheet" type="text/css" media="screen"></a>
+			<link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet" type="text/css" media="screen">
 		{% endblock stylesheets %}
 	</head>
 	<body>
+  <i id="overlayspinner" class="fa fa-spinner fa-spin fa-2x"></i>
 
 		{% block header %}
 			<div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
