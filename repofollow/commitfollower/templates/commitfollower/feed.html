@@ -5,6 +5,14 @@
 
 {% block title %} Commit Feed {% endblock title %}
 
+{% block stylesheets %}
+  {{block.super}}
+  <style>
+    body{
+      background-color: #eee;
+    }
+  </style>
+{% endblock %}
 
 {% block header %}
     {{block.super}}
@@ -18,4 +26,12 @@
 		  <strong>Uh Oh:</strong> <span id="error_message"></span>
 		</div>
 	</div>
+
+  <div class="col-md-6 col-md-offset-3 commitfeed">
+    {% for commit in commits %}
+      <div class="commit">
+        {{commit.message}}
+      </div>
+    {% endfor %}
+  </div>
 {% endblock content %}

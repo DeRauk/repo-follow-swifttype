@@ -69,16 +69,14 @@ def add_remove_user_branches(user, repo_url, submitted_branch_names):
 	except Repository.DoesNotExist:
 		raise ObjectDoesNotExist()
 
-def get_recent_commits(user, num):
+def get_recent_commits(user, start, end):
 	"""
-	Get the last `num` commits for a user's branches
+	Get the last number of commits for a user's branches
 	"""
 
+	branches = user.branch_set.all()
 
-
-	# follower = VcsWrapper(user, repo_url)
-	# follower.sync()
-	None
+	return Commit.objects.filter(branch__in=branches).order_by("-added")[start:end]
 
 
 class RateLimitException(Exception):

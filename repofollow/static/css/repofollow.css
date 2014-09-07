@@ -52,3 +52,12 @@
 .container#main {
   margin-top: 75px;
 }
+
+.commitfeed {
+  background-color: white;
+  margin-top:-50px;
+}
+
+.commit {
+  border-bottom: 1px solid #e7eaec;
+}
