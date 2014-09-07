@@ -7,6 +7,7 @@ from repofollow.models import TimeStampedModel
 from django.conf import settings
 from datetime import datetime
 
+GITHUB_DOMAIN = "github.com"
 
 class Repository(TimeStampedModel):
   """
@@ -18,7 +19,7 @@ class Repository(TimeStampedModel):
   # validated
   GITHUB = 0
   REPO_CHOICES = (
-      (GITHUB, "github.com"),
+      (GITHUB, GITHUB_DOMAIN),
   )
 
   # Obviously a lot more would need to be done to expand to another source control
@@ -36,6 +37,11 @@ class Repository(TimeStampedModel):
 
   def synced_with_tz(self):
   	return self.synced.replace(tzinfo=settings.TIME_ZONE_OBJ)
+
+  def get_name(self):
+      return {
+        Repository.GITHUB: self.url.split("/")[-1]
+      }[self.type]
 
   class Meta:
       db_table = "repositories"
@@ -63,6 +69,12 @@ class Branch(TimeStampedModel):
     def create(cls, repository, name):
     	return cls(repository=repository, name=name)
 
+    def get_url(self):
+      return {
+        Repository.GITHUB: "{}/tree/{}".format(self.repository.url, self.name)
+      }[self.repository.type]
+
+
     def save(self, *args, **kwargs):
     	"""
     	Make sure the repository updated time is set
@@ -82,11 +94,12 @@ class Commit(TimeStampedModel):
     branch = models.ForeignKey(Branch)
     message = models.TextField(null=True)
     added = models.DateTimeField()
+    author_image_url = models.CharField(max_length=100, null=True)
 
     @classmethod
-    def create(cls, branch, author, sha, message, date):
+    def create(cls, branch, author, sha, message, date, image_url):
     	return cls(branch=branch, author=author, sha=sha,
-    								message=message, added=date)
+    								message=message, added=date, author_image_url=image_url)
 
     def save(self, *args, **kwargs):
     	"""
@@ -95,6 +108,26 @@ class Commit(TimeStampedModel):
     	self.branch.repository.updated = datetime.now()
     	self.branch.repository.save()
     	super(Commit, self).save(*args, **kwargs)
+
+    def info_is_equal(self, other_commit):
+      """
+      True if the only difference between these commits is the branch they're on
+      """
+      if self.branch.repository == other_commit.branch.repository and \
+        self.sha == other_commit.sha:
+        return True
+      else:
+        return False
+
+    def get_author_link(self):
+      return {
+        Repository.GITHUB: "https://{}/{}".format(GITHUB_DOMAIN,self.author)
+      }[self.branch.repository.type]
+
+    def get_original_link(self):
+      return {
+        Repository.GITHUB: "{}/commit/{}".format(self.branch.repository.url,self.sha)
+      }[self.branch.repository.type]
 
     class Meta:
         db_table = "commits"

@@ -22,7 +22,8 @@ def feed(request):
 	Return the news feed of commits for a user. Returns an html payload.
 	"""
 	context = RequestContext(request)
-	commits = follower.get_recent_commits(request.user, 0, 10)
+
+	commits = follower.get_recent_commits(request.user)
 
 	return render_to_response('commitfollower/feed.html', {'commits': commits},
 																context_instance=context)

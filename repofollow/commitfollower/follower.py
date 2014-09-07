@@ -69,14 +69,39 @@ def add_remove_user_branches(user, repo_url, submitted_branch_names):
 	except Repository.DoesNotExist:
 		raise ObjectDoesNotExist()
 
-def get_recent_commits(user, start, end):
+def get_recent_commits(user):
 	"""
 	Get the last number of commits for a user's branches
 	"""
 
 	branches = user.branch_set.all()
 
-	return Commit.objects.filter(branch__in=branches).order_by("-added")[start:end]
+	all_commits = Commit.objects.filter(branch__in=branches).order_by("-added")
+
+	unique_commits = []
+
+	# We have some duplicate commits across branches that will look kind of ugly
+	# in a feed.  Since we sorted by commited time, they will be
+	# right beside each other in the commits list! Which is great, because we can
+	# pretty efficiently de-duplicate this list and just add one 'commit'
+	# with all of the branches
+
+	i = 0
+	j = 1
+	while i < len(all_commits):
+		current_commit = all_commits[i]
+		branches = [current_commit.branch,]
+		while j < len(all_commits) and current_commit.info_is_equal(all_commits[j]):
+			branches.append(all_commits[i+1].branch)
+			j += 1
+
+		i = j
+		j += 1
+		current_commit.branches = branches
+		unique_commits.append(current_commit)
+
+	return unique_commits
+
 
 
 class RateLimitException(Exception):
@@ -278,6 +303,24 @@ class GithubFollower:
 		Use the Github REST api to get a list of commits for the repo_path.
 		Returns [(author, sha, msg, date)]
 		"""
+
+		def build_commit_tuple(commit_data):
+			if 'author' in commit_data and commit_data['author'] is not None:
+				author = commit_data['author']['login']
+				author_image_url = d['author']['avatar_url']
+			else:
+				author = commit_data['commit']['author']['name']
+				author_image_url = None
+
+			sha = commit_data['sha']
+			message = commit_data['commit']['message']
+			date = dateparser.parse(d['commit']['author']['date'])\
+													.replace(tzinfo=settings.TIME_ZONE_OBJ)
+			return (author, sha, message, date, author_image_url)
+
+
+
+
 		commits = []
 		headers = self.properties['request_headers']
 		url = "{}/repos{}/commits?sha={}".format(self.properties['api_url'],
@@ -290,12 +333,7 @@ class GithubFollower:
 		while url is not None:
 			response = self.response_wrapper(self.client.get(url, headers=headers))
 			resp_data = json.loads(response.text)
-			commits += [(d['commit']['author']['name'],
-										d['sha'],
-										  d['commit']['message'], \
-												dateparser.parse(d['commit']['author']['date'])\
-													.replace(tzinfo=settings.TIME_ZONE_OBJ)) \
-									for d in resp_data]
+			commits += [build_commit_tuple(d) for d in resp_data]
 
 			# Get next page by grabbing 'next' link if it exists
 			if 'link' in response.headers and 'next' in response.headers['link']:

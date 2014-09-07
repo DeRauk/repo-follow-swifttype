@@ -60,4 +60,27 @@
 
 .commit {
   border-bottom: 1px solid #e7eaec;
+  height:125px;
+  padding:5px;
+}
+
+.profile_img{
+  width: 50px;
+  height: 50px;
+  margin-top: 5px;
+  margin-bottom: 5px;
+}
+
+.highlight pre{
+  padding-left: 2px;
+  padding-bottom: 3px;
+  padding-top:3px;
+  margin-top:0;margin-bottom:0;
+  word-break:normal;
+  word-wrap:nowrap;
+  white-space:nowrap;
+  background-color:transparent;
+  border:0;
+  background-color: #eee;
+  height: 50px;
 }
