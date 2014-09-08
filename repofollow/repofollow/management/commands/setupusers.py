@@ -8,10 +8,18 @@ class Command(NoArgsCommand):
   )
 
   def handle_noargs(self, **options):
-    user = User.objects.create_user('derauk', 'derauk@gmail.com', 'derauk')
-    print("Creating user derauk!")
-    user.save()
+    try:
+      User.objects.get(email='derauk@gmail.com')
+      print("User 'derauk' already exists!")
+    except User.DoesNotExist:
+      user = User.objects.create_user('derauk', 'derauk@gmail.com', 'derauk')
+      print("Creating user derauk!")
+      user.save()
 
-    user = User.objects.create_user('swifttype', 'swift@type.com', 'swifttype')
-    print("Creating user swifttype!")
-    user.save()
+    try:
+      User.objects.get(email='swift@type.com')
+      print("User 'swifttype' already exists!")
+    except User.DoesNotExist:
+      user = User.objects.create_user('swifttype', 'swift@type.com', 'swifttype')
+      print("Creating user swifttype!")
+      user.save()
