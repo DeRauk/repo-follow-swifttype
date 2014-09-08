@@ -1,6 +1,8 @@
 follower = {
 	page: 0,
 	more_commits: true,
+	rate_limit_exception: "We're currently over our rate limit for the github" +
+												" apis, grab a coffee and check back in an hour or so.",
 
 	get_branches: function (repo_url){
 		this.show_modal_spinner();
@@ -12,6 +14,9 @@ follower = {
 		      },
 		      400: function (response) {
 		         follower.client_error("Invalid url entered for a repository");
+		      },
+		      403: function (response) {
+		         follower.client_error(follower.rate_limit_exception);
 		      },
 		      404: function(response) {
 		      	follower.client_error("We could not find a repository at that url");
@@ -50,6 +55,9 @@ follower = {
 		         follower.client_error("Invalid url entered for a repository");
 		         $("#branch_modal").modal('hide');
 		      },
+		      403: function (response) {
+		         follower.client_error(follower.rate_limit_exception);
+		      },
 		      404: function(response) {
 		      	follower.client_error("We could not find a repository at that url");
 		      	$("#branch_modal").modal('hide');
@@ -74,6 +82,9 @@ follower = {
 		      400: function (response) {
 		         follower.client_error("Invalid repository url or branch");
 		      },
+		      403: function (response) {
+		         follower.client_error(follower.rate_limit_exception);
+		      },
 		      404: function(response) {
 		      	follower.client_error("We could not find a repository at that url");
 		      },
@@ -97,6 +108,9 @@ follower = {
 		      },
 		      400: function (response) {
 		         follower.client_error("Invalid url entered for a repository");
+		      },
+		      403: function (response) {
+		         follower.client_error(follower.rate_limit_exception);
 		      },
 		      404: function(response) {
 		      	follower.client_error("We could not find a repository at that url");

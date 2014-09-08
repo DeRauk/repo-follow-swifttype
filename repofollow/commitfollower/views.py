@@ -11,6 +11,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
+from .follower import RateLimitException
 from . import follower
 from .validators import valid_url, supported_vcs_provider, clean_url, repo_contains_branches
 import logging, pdb
@@ -32,9 +33,13 @@ def get_commits(request):
 	"""
 	context = RequestContext(request)
 
-	commits_list = follower.get_recent_commits(request.user)
+	try:
+		commits_list = follower.get_recent_commits(request.user)
+	except RateLimitException:
+		return HttpResponse(status=403)
 
 	if len(commits_list) == 0:
+		# User has no commits
 		response = render_to_response('commitfollower/no_repos.html',
 																			context_instance=context)
 		response['more_pages'] = False
@@ -70,7 +75,6 @@ def repo_list(request):
 	return render_to_response('commitfollower/repository_list.html',
 															{'repos': repos}, context_instance=context)
 
-
 @login_required
 def get_branches(request, repo_url):
 	"""
@@ -87,13 +91,16 @@ def get_branches(request, repo_url):
 		return HttpResponse(status=501)
 
 	try:
-		branch_models = follower.get_repo_branches(request.user, repo_url)
-		display_data = [(b.name, followed) for b, followed in branch_models]
-		parameters = {'branches': display_data, 'repo_url':repo_url}
+		branches = follower.get_repo_branches(request.user, repo_url)
+		repo = branches[0][0].repository
+
+		parameters = {'branches': branches, 'repo':repo}
 		html = get_template('commitfollower/branch_choice_modal.html')
 		return HttpResponse(html.render(Context(parameters)))
 	except ObjectDoesNotExist:
 		return HttpResponse(status=404)
+	except RateLimitException:
+		return HttpResponse(status=403)
 
 @login_required
 def update_branches(request, repo_url):
@@ -111,7 +118,10 @@ def update_branches(request, repo_url):
 		if not repo_contains_branches(repo_url, branch_names):
 			return HttpResponse(status=400)
 		else:
-			follower.add_remove_user_branches(request.user, repo_url, branch_names)
+			try:
+				follower.add_remove_user_branches(request.user, repo_url, branch_names)
+			except RateLimitException:
+				return HttpResponse(status=403)
 			return HttpResponse(status=200)
 	else:
 		return HttpResponse(status=501)

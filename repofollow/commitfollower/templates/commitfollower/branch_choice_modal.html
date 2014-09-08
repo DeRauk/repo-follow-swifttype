@@ -1,16 +1,15 @@
 <div class="modal fade" id="branch_modal">
   <i id="overlayspinner" class="fa fa-spinner fa-spin fa-2x" hidden></i>
   <div class="modal-dialog">
-    <form id="branch_update" role="form" action="{% url 'follower:update_branches' repo_url %}">
+    <form id="branch_update" role="form" action="{% url 'follower:update_branches' repo.url %}">
       <div class="modal-content">
         <div class="modal-header">
           <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
-          <h4 class="modal-title">Choose branches to follow</h4>
+          <h4 class="modal-title">Choose branches to follow for <b>{{repo.get_name}}</b></h4>
         </div>
         <div class="modal-body">
           <div class="row">
             <div class="col-md-8 col-md-offset-2">
-            <h4>{{repo_url}}</h4>
               <table class="table table-striped" style="max-width:300px;">
                 <thead>
                 </thead>
@@ -19,12 +18,12 @@
                     <tr>
                       <td>
                         <label>
-                          {{branch}}
+                          <a href="{{branch.get_url}}">{{branch.name}}</a>
                         </label>
                       </td>
                       <td>
                         <div class="checkbox" >
-                          <label><input type="checkbox" name="{{branch}}" {% if followed %} checked='checked' {% endif %}></label>
+                          <label><input type="checkbox" name="{{branch.name}}" {% if followed %} checked='checked' {% endif %}></label>
                         </div>
                       </td>
                     </tr>

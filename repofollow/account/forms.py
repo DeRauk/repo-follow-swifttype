@@ -5,7 +5,6 @@ form classes for the account app
 from __future__ import absolute_import
 from django import forms
 from django.contrib.auth import authenticate
-import pdb
 
 class LoginForm(forms.Form):
 	"""
@@ -26,7 +25,6 @@ class LoginForm(forms.Form):
 		email = cleaned_data.get('email')
 		password = cleaned_data.get('password')
 		self.user = authenticate(username=email, password=password)
-		pdb.set_trace()
 		if self.user is None:
 			raise forms.ValidationError("Invalid email or password.")
 		return cleaned_data

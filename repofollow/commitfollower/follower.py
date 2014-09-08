@@ -15,8 +15,6 @@ import requests, logging, json, pdb
 
 logger = logging.getLogger(__name__)
 
-HEADERS = {'Accept': 'application/vnd.github.v3+json'}
-
 def get_repo_branches(user, repo_url):
 	"""
 	Get the branches of a repository and if a user if following them.
@@ -36,7 +34,6 @@ def get_user_repos(user):
 
 def unfollow_repo(user, repo_url):
 	try:
-		logger.debug("Unfollowing repo {}", repo_url)
 		repo_branches = Repository.objects.get(url=repo_url).branch_set.all()
 		for branch in repo_branches:
 			branch.followers.remove(user)
@@ -76,6 +73,14 @@ def get_recent_commits(user):
 
 	branches = user.branch_set.all()
 
+	repos = set()
+
+	for branch in branches:
+		repos.add(branch.repository)
+
+	for repo in repos:
+		VcsWrapper(user, repo=repo).sync()
+
 	all_commits = Commit.objects.filter(branch__in=branches).order_by("-added")
 
 	unique_commits = []
@@ -85,7 +90,6 @@ def get_recent_commits(user):
 	# right beside each other in the commits list! Which is great, because we can
 	# pretty efficiently de-duplicate this list and just add one 'commit'
 	# with all of the branches
-
 	i = 0
 	j = 1
 	while i < len(all_commits):
@@ -122,21 +126,25 @@ class RateLimitException(Exception):
 
 class VcsWrapper:
 
-	def __init__(self, user, repo_url):
-		try:
-			self.repo = None
-			self.user = user
+	def __init__(self, user, repo_url=None, repo=None):
+		self.repo = repo
+		self.user = user
+
+		if repo is None:
 			self.repo_url = repo_url
+		else:
+			self.repo_url = self.repo.url
 
-			parsed = urlparse(repo_url)
-			self.repo_path = parsed.path
+		parsed = urlparse(self.repo_url)
+		self.repo_path = parsed.path
 
+		try:
 			self.follower = {
 				'github.com': GithubFollower.get_instance(),
 			}[parsed.netloc]
-
 		except KeyError:
 			raise ObjectDoesNotExist()
+
 
 	def should_sync(self, repo):
 		now = datetime.now(tz.gettz(settings.TIME_ZONE))
@@ -212,8 +220,13 @@ class VcsWrapper:
 		for branch in branches:
 			most_recent = branch.commit_set.order_by("-added").first()
 			last_committed_date = most_recent.added.replace(tzinfo=settings.TIME_ZONE_OBJ)
-			commit_list = self.follower.get_commits(self.repo_path, branch.name,
-											most_recent.added + timedelta(hours=-7)) #B/c Github subtracted 7 hours?
+			commit_list = self.follower.get_commits(
+														self.repo_path, branch.name,
+														most_recent.added +
+														timedelta(hours=-12)) # B/c Github subtracted 7 hours?
+																									# (I subtracted 12 because I'm
+																									#   paranoid) We can afford
+																									# to pick up some old commits
 			for commit_data in commit_list:
 				if commit_data[3] > last_committed_date:
 					commit = Commit.create(branch, *commit_data)

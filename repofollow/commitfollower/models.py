@@ -109,6 +109,9 @@ class Commit(TimeStampedModel):
     	self.branch.repository.save()
     	super(Commit, self).save(*args, **kwargs)
 
+    def get_html_cache_key(self):
+      return "{}-{}".format(self.branch.repository.get_name(), self.sha)
+
     def info_is_equal(self, other_commit):
       """
       True if the only difference between these commits is the branch they're on
