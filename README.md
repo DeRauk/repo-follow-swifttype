@@ -3,6 +3,15 @@ RepoFollow
 
 A Twitter-style commit reader. Enjoy!
 
+
+* [Setup](#Setup)
+* [How to Use It](#How to Use It)
+* [Scaling] (#Scaling)
+* [Design Decisions] (#Design Decisions)
+* [Bugs and Things I Could Have Done Better](#Bugs and Things I Could Have Done Better)
+* [What it Doesn't Do] (#What it Doesn't Do)
+
+
 ## Setup
 I used postgres as a backend persistent store and memcached as my cache.  Both of these will need to be installed.
 
@@ -16,8 +25,11 @@ The Memcached settings can be found at /repofollow/repofollow/settings.py on lin
 1. If you're using virtualenv, start a new virtual environment and activate it.
 2. Install everything in the requirements file at /docs/requirements.txt with pip. `pip install -r requirements.txt`
 
+### Database Setup
+After installing postgres, you can run the setup script in /repofollow/, `./setup`.  This will sync up the database and create users.
+
 ## How to Use It
-1. Run the devrun script in /repofollow
+1. Run the devrun script in /repofollow `./devrun`
 2. Navigate to localhost:8000 in a browser
 3. login with "derauk/derauk" or "swifttype/swifttype"
 4. Paste a github repository url in the text input on the header and click follow
@@ -25,7 +37,7 @@ The Memcached settings can be found at /repofollow/repofollow/settings.py on lin
 6. Click on your username in the top right on the nav bar and select "Manage Repositories"
 7. You can edit branches or delete repositories from this page
 
-## Scaling and Design Decisions
+## Scaling
 I specifically tried started tackling two bottlenecks.
 
 ### Bottleneck 1: Rate Limiting
