@@ -4,12 +4,12 @@ RepoFollow
 A Twitter-style commit reader. Enjoy!
 
 
-* [Setup](#Setup)
-* [How to Use It](#How to Use It)
-* [Scaling] (#Scaling)
-* [Design Decisions] (#Design Decisions)
-* [Bugs and Things I Could Have Done Better](#Bugs and Things I Could Have Done Better)
-* [What it Doesn't Do] (#What it Doesn't Do)
+* [Setup](https://github.com/DeRauk/repo-follow-swifttype/blob/master/README.md#setup)
+* [How to Use It](https://github.com/DeRauk/repo-follow-swifttype/blob/master/README.md#how-to-use-it)
+* [Scaling] (https://github.com/DeRauk/repo-follow-swifttype/blob/master/README.md#scaling)
+* [Design Decisions] (https://github.com/DeRauk/repo-follow-swifttype/blob/master/README.md#design-decisions)
+* [Bugs and Things I Could Have Done Better](https://github.com/DeRauk/repo-follow-swifttype/blob/master/README.md#bugs-and-things-i-could-have-done-better)
+* [What it Doesn't Do] (https://github.com/DeRauk/repo-follow-swifttype/blob/master/README.md#what-it-doesnt-do)
 
 
 ## Setup
