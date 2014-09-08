@@ -14,24 +14,23 @@ from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from .follower import RateLimitException
 from . import follower
 from .validators import valid_url, supported_vcs_provider, clean_url, repo_contains_branches
-import logging, pdb
 
-logger = logging.getLogger(__name__)
+COMMIT_PAGE_SIZE = 25
 
 @login_required
 def feed(request):
 	"""
 	Return the news feed of commits for a user. Returns an html payload.
 	"""
-	context = RequestContext(request)
-	return render_to_response('commitfollower/feed.html', context_instance=context)
+	return render_to_response('commitfollower/feed.html',
+																	context_instance=RequestContext(request))
 
 @login_required
 def get_commits(request):
 	"""
-	Returns an html payload of commits.
+	Returns an html payload of commits, pass a page in as GET param. Defaults
+		to page 1
 	"""
-	context = RequestContext(request)
 
 	try:
 		commits_list = follower.get_recent_commits(request.user)
@@ -41,11 +40,11 @@ def get_commits(request):
 	if len(commits_list) == 0:
 		# User has no commits
 		response = render_to_response('commitfollower/no_repos.html',
-																			context_instance=context)
+																			context_instance=RequestContext(request))
 		response['more_pages'] = False
 		return response
 	else:
-		paginator = Paginator(commits_list, 25)
+		paginator = Paginator(commits_list, COMMIT_PAGE_SIZE)
 		page = request.GET.get('page')
 
 		try:
@@ -54,11 +53,11 @@ def get_commits(request):
 			page = 1
 			commits = paginator.page(page)
 		except EmptyPage:
-			page = paginator.num_pages
-			commits = paginator.page(page)
+			commits = []
 
-		response = render_to_response('commitfollower/commit_list.html', {'commits': commits},
-																	context_instance=context)
+		response = render_to_response('commitfollower/commit_list.html',
+																		{'commits': commits},
+																			context_instance=RequestContext(request))
 		response['more_pages'] = int(page) < paginator.num_pages
 
 		return response
@@ -69,11 +68,11 @@ def repo_list(request):
 	Return a list of repositories for the logged in user. Returns an html payload.
 	"""
 
-	context = RequestContext(request)
 	repos = follower.get_user_repos(request.user)
 
 	return render_to_response('commitfollower/repository_list.html',
-															{'repos': repos}, context_instance=context)
+															{'repos': repos},
+																context_instance=RequestContext(request))
 
 @login_required
 def get_branches(request, repo_url):
@@ -130,7 +129,7 @@ def update_branches(request, repo_url):
 @login_required
 def unfollow_repo(request, repo_url):
 	"""
-	Remove the repo and all of it's branches from the followed list for the user.
+	Remove the repo's branches from the followed list for the user.
 	"""
 	repo_url = clean_url(repo_url)
 

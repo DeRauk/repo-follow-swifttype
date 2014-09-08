@@ -1,5 +1,5 @@
 """
-Controller logic for the commitfollower app
+Controller logic for the commitfollower app.
 """
 
 from __future__ import absolute_import
@@ -8,19 +8,20 @@ from django.core.exceptions import ObjectDoesNotExist
 from urlparse import urlparse
 from requests_oauthlib import OAuth2Session
 from datetime import timedelta, datetime
-from .models import Repository, Branch, Commit
+from .models import Repository, Branch, Commit, GITHUB_DOMAIN
 from dateutil import parser as dateparser
 from dateutil import tz
-import requests, logging, json, pdb
+import logging, json
 
 logger = logging.getLogger(__name__)
 
 def get_repo_branches(user, repo_url):
 	"""
 	Get the branches of a repository and if a user if following them.
+	Returns (branch, boolean)
 	"""
 
-	follower = VcsWrapper(user, repo_url)
+	follower = VcsWrapper(repo_url)
 	follower.sync()
 
 	repo = follower.repo
@@ -41,20 +42,24 @@ def unfollow_repo(user, repo_url):
 		raise ObjectDoesNotExist()
 
 def add_remove_user_branches(user, repo_url, submitted_branch_names):
+	"""
+	This makes sure the user is following `submitted_branch_names` for `repo_url`
+	It will unfollow and follow current branches as needed
+	"""
 	try:
 		repo = Repository.objects.get(url=repo_url)
 		repo_branches = repo.branch_set.all()
 		user_branches = user.branch_set.filter(repository=repo)
 		user_branch_names = [ubranch.name for ubranch in user_branches]
 
+		# get diffs between new and old
+		new_branches = [branch for branch in repo_branches \
+											if branch.name in submitted_branch_names
+												and branch.name not in user_branch_names]
 
-		new_branches = [branch for branch in repo_branches if branch.name in \
-											submitted_branch_names and branch.name not in \
-												user_branch_names]
-
-		deleted_branches = [branch for branch in repo_branches if branch.name in \
-													user_branch_names and branch.name not in \
-														submitted_branch_names]
+		deleted_branches = [branch for branch in repo_branches \
+													if branch.name in user_branch_names
+														and branch.name not in submitted_branch_names]
 
 		for branch in deleted_branches:
 			branch.followers.remove(user)
@@ -68,21 +73,18 @@ def add_remove_user_branches(user, repo_url, submitted_branch_names):
 
 def get_recent_commits(user):
 	"""
-	Get the last number of commits for a user's branches
+	Get all commits for a user's branches
 	"""
 
 	branches = user.branch_set.all()
 
 	repos = set()
-
 	for branch in branches:
 		repos.add(branch.repository)
-
 	for repo in repos:
-		VcsWrapper(user, repo=repo).sync()
+		VcsWrapper(repo=repo).sync()
 
 	all_commits = Commit.objects.filter(branch__in=branches).order_by("-added")
-
 	unique_commits = []
 
 	# We have some duplicate commits across branches that will look kind of ugly
@@ -125,10 +127,13 @@ class RateLimitException(Exception):
 
 
 class VcsWrapper:
+	"""
+	Abstraction of version control apis.  Given a url it constructs the correct
+	api follower and provides some functions to work with the api.
+	"""
 
-	def __init__(self, user, repo_url=None, repo=None):
+	def __init__(self, repo_url=None, repo=None):
 		self.repo = repo
-		self.user = user
 
 		if repo is None:
 			self.repo_url = repo_url
@@ -140,7 +145,7 @@ class VcsWrapper:
 
 		try:
 			self.follower = {
-				'github.com': GithubFollower.get_instance(),
+				GITHUB_DOMAIN: GithubFollower.get_instance(),
 			}[parsed.netloc]
 		except KeyError:
 			raise ObjectDoesNotExist()
@@ -153,16 +158,14 @@ class VcsWrapper:
 		time_interval = timedelta(0, self.follower.properties['sync_interval_sec'])
 		next_sync_allowed = repo.synced_with_tz() + time_interval
 		if now < next_sync_allowed:
-			logger.debug("Too early to allow another sync")
 			return False
 
-		# if the remote updated time is less than our last updated time,
+		# if the remote updated time is older than our last updated time,
 		# return b/c there's nothing new to sync
 		remote_updated_time = self.follower.get_last_updated(self.repo_path)
 		local_updated_time = repo.synced_with_tz()
 
 		if local_updated_time >= remote_updated_time:
-			logger.debug("Remote hasn't been updated")
 			return False
 
 		return True
@@ -206,7 +209,7 @@ class VcsWrapper:
 
 	def initialize_new_repo(self):
 		self.repo = Repository(url=self.repo_url, type=self.follower.vcs,
-												source=self.follower.source)
+														source=self.follower.source)
 		self.repo.save()
 
 		branch_list = self.follower.get_branches(self.repo_path)
@@ -251,6 +254,7 @@ def rate_limited(fn):
 	"""
 	def check_limited(self, *argv, **kwargs):
 		if self.limited:
+			# Need to reset the limited status if we're past the limit reset
 			now = datetime.now(tz.gettz(settings.TIME_ZONE))
 			reset = self.limit_reset
 			if now < reset:
@@ -263,7 +267,7 @@ def rate_limited(fn):
 
 class GithubFollower:
 	"""
-	A follower class for the github api. Meant to be used as a singleton.
+	A follower class for the github api. Should to be used as a singleton.
 
 	Attributes:
 		instance -- singleton instance for the class
@@ -272,7 +276,7 @@ class GithubFollower:
 		limited -- boolen, true if the api is currently limited
 		limit_reset -- datetime of when the api will no longer be limited
 	"""
-	site_key = 'github.com'
+	site_key = GITHUB_DOMAIN
 	source = Repository.GITHUB
 	vcs  = Repository.GIT
 	properties = settings.VCS_PROPERTIES[site_key]

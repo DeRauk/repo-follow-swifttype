@@ -11,7 +11,7 @@ class LoginForm(forms.Form):
 	Form class to clean the input coming from the login page.
 	"""
 
-	email = forms.CharField(widget=forms.TextInput( attrs={'class':'form-control',
+	username = forms.CharField(widget=forms.TextInput( attrs={'class':'form-control',
 															'placeholder': 'Username',
 															'required': None,
 															'autofocus': None}) )
@@ -22,9 +22,9 @@ class LoginForm(forms.Form):
 
 	def clean(self):
 		cleaned_data = super(LoginForm, self).clean()
-		email = cleaned_data.get('email')
+		username = cleaned_data.get('username')
 		password = cleaned_data.get('password')
-		self.user = authenticate(username=email, password=password)
+		self.user = authenticate(username=username, password=password)
 		if self.user is None:
-			raise forms.ValidationError("Invalid email or password.")
+			raise forms.ValidationError("Invalid username or password.")
 		return cleaned_data

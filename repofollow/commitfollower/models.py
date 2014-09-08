@@ -62,8 +62,6 @@ class Branch(TimeStampedModel):
     class Meta:
         db_table = "branches"
 
-    def __unicode__(self):
-        return "{} - {}".format(str(self.repository), self.name)
 
     @classmethod
     def create(cls, repository, name):
@@ -74,6 +72,8 @@ class Branch(TimeStampedModel):
         Repository.GITHUB: "{}/tree/{}".format(self.repository.url, self.name)
       }[self.repository.type]
 
+    def __unicode__(self):
+        return "{} - {}".format(str(self.repository), self.name)
 
     def save(self, *args, **kwargs):
     	"""
@@ -93,7 +93,7 @@ class Commit(TimeStampedModel):
     author = models.CharField(max_length=50)
     branch = models.ForeignKey(Branch)
     message = models.TextField(null=True)
-    added = models.DateTimeField()
+    added = models.DateTimeField(db_index=True) # This is sorted and searched by often
     author_image_url = models.CharField(max_length=100, null=True)
 
     @classmethod
@@ -108,9 +108,6 @@ class Commit(TimeStampedModel):
     	self.branch.repository.updated = datetime.now()
     	self.branch.repository.save()
     	super(Commit, self).save(*args, **kwargs)
-
-    def get_html_cache_key(self):
-      return "{}-{}".format(self.branch.repository.get_name(), self.sha)
 
     def info_is_equal(self, other_commit):
       """
