@@ -3,7 +3,7 @@ Django settings for repofollow project.
 
 """
 
-from os.path import join, abspath, dirname, sep
+from os.path import join, abspath, dirname
 
 here = lambda *dirs: join(abspath(dirname(__file__)), *dirs)
 BASE_DIR = here("..")
@@ -30,6 +30,7 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     'south',
     'debug_toolbar',
+    'repofollow',
     'account',
     'commitfollower'
 )

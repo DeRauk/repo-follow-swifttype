@@ -119,7 +119,7 @@
 #overlayspinner{
    position: absolute;
    left: 50%;
-   top: 30%;
+   top: 250px;
    margin:0px auto;
    z-index: 9999;
    display: none;
